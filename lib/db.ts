@@ -1,15 +1,14 @@
 import { neon } from "@neondatabase/serverless"
 
 // Initialize the SQL client
-const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
+const sql = process.env.DATABASE_URL
+  ? neon(process.env.DATABASE_URL)
+  : (...args: any[]) => {
+      throw new Error("DATABASE_URL environment variable is not set. Please configure your database connection.");
+    };
 
 // Simple wrapper for tagged template queries
 export async function executeQuery(query: TemplateStringsArray, ...params: any[]) {
-  if (!sql) {
-    console.error("Database connection not initialized")
-    return []
-  }
-
   try {
     return await sql(query, ...params)
   } catch (error) {
