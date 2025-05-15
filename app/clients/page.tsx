@@ -30,38 +30,40 @@ export default async function ClientsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {clients.length > 0 ? (
-          clients.map((client: any) => (
-            <Link href={`/clients/${client.id}`} key={client.id}>
-              <Card className="cursor-pointer hover:bg-muted/50">
-                <CardHeader className="pb-2">
-                  <CardTitle>{client.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="font-medium">Contact:</div>
-                    <div>{client.contact_person || "N/A"}</div>
-
-                    <div className="font-medium">Email:</div>
-                    <div>{client.email || "N/A"}</div>
-
-                    <div className="font-medium">Phone:</div>
-                    <div>{client.phone || "N/A"}</div>
-
-                    <div className="font-medium">Active Rentals:</div>
-                    <div>{client.active_rentals}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        ) : (
-          <p className="col-span-3 text-center text-muted-foreground">
-            No clients found. Add your first client to get started.
-          </p>
-        )}
-      </div>
+      <table className="min-w-full bg-white border rounded shadcn-table">
+        <thead>
+          <tr>
+            <th className="px-4 py-2 border">Name</th>
+            <th className="px-4 py-2 border">Contact Person</th>
+            <th className="px-4 py-2 border">Email</th>
+            <th className="px-4 py-2 border">Phone</th>
+            <th className="px-4 py-2 border">Active Rentals</th>
+            <th className="px-4 py-2 border">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {clients.length > 0 ? (
+            clients.map((client: any) => (
+              <tr key={client.id} className="hover:bg-muted/50">
+                <td className="px-4 py-2 border">{client.name}</td>
+                <td className="px-4 py-2 border">{client.contact_person || "N/A"}</td>
+                <td className="px-4 py-2 border">{client.email || "N/A"}</td>
+                <td className="px-4 py-2 border">{client.phone || "N/A"}</td>
+                <td className="px-4 py-2 border text-center">{client.active_rentals}</td>
+                <td className="px-4 py-2 border text-center">
+                  <Link href={`/clients/${client.id}`}>
+                    <Button size="sm" variant="outline">View</Button>
+                  </Link>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={6} className="px-4 py-2 border text-center text-muted-foreground">No clients found. Add your first client to get started.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }

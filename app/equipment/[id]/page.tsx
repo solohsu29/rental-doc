@@ -1,12 +1,10 @@
-"use client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { executeQuery } from "@/lib/db"
 import { Edit, FileText, Truck } from "lucide-react"
 import Link from "next/link"
-import { notFound } from "next/navigation"
-
+import { notFound } from "next/navigation";
 async function getEquipment(id: string) {
   try {
     const equipment = await executeQuery`
@@ -56,10 +54,10 @@ async function getRentals(equipmentId: string) {
   }
 }
 
-import { useParams } from "next/navigation";
 
-export default async function EquipmentDetailPage() {
-  const { id } = useParams();
+
+export default async function EquipmentDetailPage({ params }: { params: { id: string } }) {
+  const id = params.id;
   if (!id || typeof id !== 'string') return notFound();
   const equipment = await getEquipment(id);
 

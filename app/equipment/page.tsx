@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { executeQuery } from "@/lib/db"
 import { Plus } from "lucide-react"
 import Link from "next/link"
@@ -37,53 +36,41 @@ export default async function EquipmentPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {equipment.length > 0 ? (
-          equipment.map((item: any) => (
-            <Link href={`/equipment/${item.id}`} key={item.id}>
-              <Card className="cursor-pointer hover:bg-muted/50">
-                <CardHeader className="pb-2">
-                  <CardTitle>{item.gondola_number}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="font-medium">Motor Serial:</div>
-                    <div>{item.motor_serial_number}</div>
-
-                    <div className="font-medium">Type:</div>
-                    <div>{item.equipment_type}</div>
-
-                    <div className="font-medium">Status:</div>
-                    <div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          item.status === "available"
-                            ? "bg-green-100 text-green-800"
-                            : item.status === "deployed"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
-
-                    <div className="font-medium">Active Rentals:</div>
-                    <div>{item.active_rentals}</div>
-
-                    <div className="font-medium">Valid Documents:</div>
-                    <div>{item.valid_documents}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        ) : (
-          <p className="col-span-3 text-center text-muted-foreground">
-            No equipment found. Add your first equipment to get started.
-          </p>
-        )}
-      </div>
+      <table className="min-w-full bg-white border rounded">
+        <thead>
+          <tr>
+            <th className="px-4 py-2 border">Gondola #</th>
+            <th className="px-4 py-2 border">Motor Serial</th>
+            <th className="px-4 py-2 border">Active Rentals</th>
+            <th className="px-4 py-2 border">Valid Documents</th>
+            <th className="px-4 py-2 border">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {equipment.length > 0 ? (
+            equipment.map((item: any) => (
+              <tr key={item.id} className="hover:bg-gray-100">
+                <td className="px-4 py-2 border">{item.gondola_number}</td>
+                <td className="px-4 py-2 border">{item.motor_serial_number}</td>
+                <td className="px-4 py-2 border text-center">{item.active_rentals}</td>
+                <td className="px-4 py-2 border text-center">{item.valid_documents}</td>
+                <td className="px-4 py-2 border text-center">
+                  <Link href={`/equipment/${item.id}`}>
+                    <Button size="sm" variant="outline" className="mr-2">View</Button>
+                  </Link>
+                  <Link href={`/rentals/new?equipment_id=${item.id}`}>
+                    <Button size="sm" variant="secondary">Rental</Button>
+                  </Link>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={5} className="px-4 py-2 border text-center text-muted-foreground">No equipment found.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
