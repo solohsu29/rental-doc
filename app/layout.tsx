@@ -1,18 +1,11 @@
 import type React from "react"
-import "./globals.css"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import { MainNav } from "@/components/main-nav"
-import { UserNav } from "@/components/user-nav"
-import { Toaster } from "@/app/components/toaster"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
-const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Equipment Rental Management System",
-  description: "Manage equipment rentals, documents, and inspections",
-  generator: "v0.dev",
-}
+import "@/app/globals.css"
+import { SidebarNav } from "@/components/SidebarNav"
+import Header from "@/components/Header"
+import { cn } from "@/lib/utils"
 
 export default function RootLayout({
   children,
@@ -21,19 +14,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="flex min-h-screen flex-col px-6">
-          <header className="sticky top-0 z-50 border-b bg-background">
-            <div className="flex h-16 items-center justify-between py-4">
-              <MainNav />
-              <UserNav />
+      <body>
+        <SidebarProvider>
+          <SidebarNav />
+          <SidebarInset>
+            <header className="flex items-center gap-4 bg-background px-3 py-3">
+              <SidebarTrigger />
+              <div className="flex items-center justify-between w-full">
+              <Header />
+              </div>
+            </header>
+            <div className="flex-1 flex flex-col">
+           
+            <div className={cn("flex-1 overflow-hidden px-4")}>
+              {children}
             </div>
-          </header>
-          <main className="flex-1">
-            <div className="px-6 py-6">{children}</div>
-          </main>
-        </div>
-        <Toaster />
+          </div>
+          </SidebarInset>
+        </SidebarProvider>
       </body>
     </html>
   )

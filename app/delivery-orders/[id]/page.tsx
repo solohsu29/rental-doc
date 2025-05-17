@@ -36,7 +36,32 @@ console.log('deliveryOrder',deliveryOrder)
         <div><b>Client:</b> {deliveryOrder.client_name}</div>
         <div><b>Site Location:</b> {deliveryOrder.site_location}</div>
         <div><b>Notes:</b> {deliveryOrder.notes || "-"}</div>
-       
+        <div>
+          <b>Documents:</b>{" "}
+          {deliveryOrder.documents && deliveryOrder.documents.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {deliveryOrder.documents.map((doc: any) =>
+                doc && doc.id ? (
+                  <span key={doc.id} className="inline-block px-2 py-1 bg-gray-100 rounded text-xs">
+                   {doc.file_name && (
+                      <a
+                        href={`/api/documents/${doc.id}/file`}
+                        download={doc.file_name}
+                        className="text-blue-600 underline hover:text-blue-800 ml-1"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {doc.file_name}
+                      </a>
+                    )}
+                  </span>
+                ) : null
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-xs">No Docs</span>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button onClick={() => router.push(`/delivery-orders/${id}/edit`)}>Edit</Button>
           <Button variant="outline" onClick={() => router.push("/delivery-orders")}>Back</Button>

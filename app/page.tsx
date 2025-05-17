@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { executeQuery, formatDate } from "@/lib/db"
-import { AlertCircle, CheckCircle, Clock, Package } from "lucide-react"
+import { executeQueryWithRetry as executeQuery, formatDate } from "@/lib/db"
+import { AlertCircle, CheckCircle, Clock, Package, Truck } from "lucide-react"
 import Link from "next/link"
 
 async function getStats() {
@@ -79,10 +79,17 @@ export default async function Dashboard() {
   const stats = await getStats()
   const recentRentals = await getRecentRentals()
   const expiringDocuments = await getExpiringDocuments()
+  let deliveryOrders: any[] = [];
+  try {
+    deliveryOrders = await executeQuery`SELECT * FROM delivery_orders ORDER BY do_date DESC LIMIT 5`;
+  } catch (error) {
+    console.error("Error fetching delivery orders for dashboard:", error);
+    deliveryOrders = [];
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+    
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -127,6 +134,7 @@ export default async function Dashboard() {
         <TabsList>
           <TabsTrigger value="rentals">Recent Rentals</TabsTrigger>
           <TabsTrigger value="documents">Expiring Documents</TabsTrigger>
+          <TabsTrigger value="deliveryOrders">Delivery Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="rentals" className="space-y-4">
           <Card>
@@ -191,6 +199,61 @@ export default async function Dashboard() {
               <div className="mt-2">
                 <Link href="/documents" className="text-sm text-blue-600 hover:underline">
                   View all documents
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="deliveryOrders" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Delivery Orders</CardTitle>
+              <CardDescription>Recently created delivery orders</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {deliveryOrders.length > 0 ? (
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-4 gap-4 p-4 font-medium">
+                    <div>DO Number</div>
+                    <div>Date</div>
+                    <div>Type</div>
+                    <div>Documents</div>
+                  </div>
+                  {deliveryOrders.map((order: any) => (
+                    <div key={order.id} className="grid grid-cols-4 gap-4 border-t p-4">
+                      <div>{order.do_number}</div>
+                      <div>{formatDate(order.do_date)}</div>
+                      <div>{order.do_type}</div>
+                      <div>
+                        {order.documents && order.documents.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {(() => {
+                              let docs: (string | { id: string | number; [key: string]: any })[] = [];
+                              try {
+                                docs = typeof order.documents === 'string' ? JSON.parse(order.documents) : order.documents;
+                              } catch {
+                                docs = order.documents;
+                              }
+                              return docs.map((doc, idx) => (
+                                <span key={idx} className="inline-block px-2 py-1 bg-gray-100 rounded text-xs">
+                                  {typeof doc === 'object' && doc.file_name ? doc.file_name : typeof doc === 'string' ? doc : ''}
+                                </span>
+                              ));
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">No Docs</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No delivery orders found.</p>
+              )}
+              <div className="mt-2">
+                <Link href="/delivery-orders" className="text-sm text-blue-600 hover:underline">
+                  View all delivery orders
                 </Link>
               </div>
             </CardContent>

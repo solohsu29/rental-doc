@@ -1,13 +1,12 @@
 import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
+
 
 // GET /api/documents/[id] - fetch document detail
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
-    const result = await sql`SELECT * FROM documents WHERE id = ${id}`;
+    const result = await sql`SELECT id, equipment_id, document_type, issue_date, file_name FROM documents WHERE id = ${id}`;
     if (!result || result.length === 0) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
@@ -33,26 +32,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       if (!document_type || !issue_date) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
-      let filePath = null;
+      let fileData = null;
+      let fileName = null;
       if (file && typeof file === "object" && "arrayBuffer" in file) {
-        // Save file to public/uploads/documents/{id}-{timestamp}-{filename}
-        const now = Date.now();
         const origName = (file as File).name;
-        const ext = origName.includes('.') ? origName.split('.').pop() : '';
-        const safeName = origName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
-        await fs.mkdir(uploadDir, { recursive: true });
-        const destName = `${id}-${now}-${safeName}`;
-        const destPath = path.join(uploadDir, destName);
         const arrayBuffer = await (file as File).arrayBuffer();
-        await fs.writeFile(destPath, Buffer.from(arrayBuffer));
-        filePath = path.join("uploads", "documents", destName);
+        fileData = Buffer.from(arrayBuffer);
+        fileName = origName;
       }
-      // Update DB, optionally update file_path
-      if (filePath) {
+      // Update DB, optionally update file_data and file_name
+      if (fileData && fileName) {
         await sql`
           UPDATE documents
-          SET document_type = ${document_type}, issue_date = ${issue_date}, expiry_date = ${expiry_date || null}, notes = ${notes || null}, file_path = ${filePath}
+          SET document_type = ${document_type}, issue_date = ${issue_date}, expiry_date = ${expiry_date || null}, notes = ${notes || null}, file_data = ${fileData}, file_name = ${fileName}
           WHERE id = ${id}
         `;
       } else {
@@ -88,18 +80,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function GET_FILE(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
-    const result = await sql`SELECT file_path FROM documents WHERE id = ${id}`;
-    if (!result || !result[0]?.file_path) {
+    const result = await sql`SELECT file_data, file_name FROM documents WHERE id = ${id}`;
+    if (!result || !result[0]?.file_data) {
       return new Response("File not found", { status: 404 });
     }
-    const filePath = result[0].file_path;
-    const absPath = path.join(process.cwd(), "public", filePath);
-    const file = await fs.readFile(absPath);
-    return new Response(file, {
+    const fileBuffer = result[0].file_data;
+    const fileName = result[0].file_name || `document_${id}`;
+    return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename=\"${path.basename(filePath)}\"`
+        "Content-Disposition": `attachment; filename=\"${fileName}\"`
       }
     });
   } catch (error) {

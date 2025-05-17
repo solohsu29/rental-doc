@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db"
+import { executeQueryWithRetry as sql } from "@/lib/db"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {

@@ -17,6 +17,33 @@ export async function executeQuery(query: TemplateStringsArray, ...params: any[]
   }
 }
 
+/**
+ * Robust wrapper for database queries with retry/backoff for rate limit errors.
+ * Use this for user-facing queries to minimize NeonDB rate limit errors.
+ */
+export async function executeQueryWithRetry(query: TemplateStringsArray, ...params: any[]) {
+  let attempts = 0;
+  const maxAttempts = 3;
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+  while (attempts < maxAttempts) {
+    try {
+      return await executeQuery(query, ...params);
+    } catch (error: any) {
+      // Detect NeonDB rate limit error
+      const msg = error?.message || error?.toString() || "";
+      if (msg.includes("rate limit") || msg.includes("exceeded the rate limit")) {
+        attempts++;
+        if (attempts === maxAttempts) throw error;
+        await delay(2000 * attempts); // Exponential backoff: 2s, 4s, ...
+        continue;
+      }
+      throw error;
+    }
+  }
+  // Should never reach here
+  throw new Error("Failed to execute DB query after retries");
+}
+
 // Helper function to format dates for display
 export function formatDate(date: Date | string | null): string {
   if (!date) return "N/A"

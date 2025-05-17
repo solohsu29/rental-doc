@@ -12,12 +12,36 @@ export default function EditDeliveryOrderPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]); // Uploaded or attached docs
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]); // New: for file uploads
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>(""); // New: End date field
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [documentType, setDocumentType] = useState<string>('Other');
+  // Ensure endDate is set from deliveryOrder or rental
+  // Fetch rental details for start and end date
+  useEffect(() => {
+    async function fetchRentalDates() {
+      if (deliveryOrder && deliveryOrder.rental_id) {
+        const res = await fetch(`/api/rentals`);
+        if (res.ok) {
+          const rentals = await res.json();
+          const rental = rentals.find((r: any) => String(r.id) === String(deliveryOrder.rental_id));
+          if (rental) {
+            if (rental.start_date) setStartDate(rental.start_date.split('T')[0]);
+            if (rental.end_date) setEndDate(rental.end_date.split('T')[0]);
+          }
+        }
+      }
+    }
+    if (!loading && deliveryOrder && deliveryOrder.rental_id) {
+      fetchRentalDates();
+    }
+  }, [loading, deliveryOrder]);
+ 
 
   useEffect(() => {
     async function fetchData() {
@@ -32,6 +56,7 @@ export default function EditDeliveryOrderPage() {
         setDeliveryOrder(doData);
         setDocuments(doData.documents || []);
         rentalId = doData.rental_id;
+        if (doData.end_date) setEndDate(doData.end_date);
       }
       if (clientsRes.ok) setClients(await clientsRes.json());
       if (equipmentRes.ok) setEquipment(await equipmentRes.json());
@@ -44,6 +69,7 @@ export default function EditDeliveryOrderPage() {
           if (rental) {
             setSelectedClientId(rental.client_id ? String(rental.client_id) : '');
             setSelectedEquipmentId(rental.equipment_id ? String(rental.equipment_id) : '');
+            if (rental.end_date) setEndDate(rental.end_date);
           }
         }
       }
@@ -60,32 +86,23 @@ export default function EditDeliveryOrderPage() {
     // Always send equipment_id with the document upload
     formData.append('equipment_id', selectedEquipmentId);
     // Send user-selected document_type
-   
     // Always send today's date as issue_date to satisfy not-null constraint
     formData.append('issue_date', new Date().toISOString().split('T')[0]);
-   
-   
   }
-
-  
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSaving(true);
     setFormError(null);
     const formData = new FormData(e.currentTarget);
-    const payload: any = {
-      do_date: formData.get('do_date'),
-      notes: formData.get('notes'),
-      site_location: formData.get('site_location'),
-      client_id: formData.get('client_id'),
-      equipment_id: formData.get('equipment_id'),
-     
-    };
+    // Add end date and files to FormData
+    formData.append("end_date", endDate);
+    uploadFiles.forEach((file) => formData.append("files", file));
+    // Add document IDs if needed (for now, just keep as is)
+    // formData.append("documents", JSON.stringify(documents.map((d: any) => d.id)));
     const response = await fetch(`/api/delivery-orders/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: formData,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -146,17 +163,66 @@ export default function EditDeliveryOrderPage() {
             defaultValue={deliveryOrder.do_date?.split("T")[0]}
           />
         </div>
-        {/* Status */}
-       
+        {/* Start Date */}
+        <div>
+          <Label>Rental Start Date</Label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            disabled
+          />
+        </div>
+        {/* End Date */}
+        <div>
+          <Label>Rental End Date</Label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
+          />
+        </div>
         {/* Notes */}
         <div>
           <Label htmlFor="notes">Notes</Label>
           <Input id="notes" name="notes" defaultValue={selectedNotes} />
         </div>
         {/* Documents Upload & List */}
-       
+        <div>
+          <Label>Upload Documents</Label>
+          <Input
+            type="file"
+            multiple
+            onChange={e => setUploadFiles(e.target.files ? Array.from(e.target.files) : [])}
+          />
+          {/* Show already uploaded documents */}
+          {documents && documents.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {documents.map((doc: any) =>
+                doc && doc.id ? (
+                  <span key={doc.id} className="inline-block px-2 py-1 bg-gray-100 rounded text-xs">
+                   {doc.file_name && (
+                      <a
+                        href={`/api/documents/${doc.id}/file`}
+                        download={doc.file_name}
+                        className="text-blue-600 underline hover:text-blue-800 ml-1"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      
+                      >
+                        {doc.file_name}
+                      </a>
+                    )}
+                  </span>
+                ) : null
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-xs">No uploaded documents</span>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
+          <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save Changes"}</Button>
           <Button type="button" variant="outline" onClick={() => router.push(`/delivery-orders/${id}`)}>Cancel</Button>
         </div>
         {formError && <div className="text-red-500">{formError}</div>}

@@ -14,7 +14,8 @@ export async function POST(request: Request) {
 
     // In a real application, you would upload the file to a storage service
     // and get back a URL to store in the database
-    const file_path = `/uploads/${Date.now()}_${file.name}`
+    const file_path = `/uploads/${Date.now()}_${file.name}`;
+    const file_name = file.name; // Store only the original file name
 
     // For now, we'll just store the file information in the database
     // Validate required fields
@@ -22,19 +23,21 @@ export async function POST(request: Request) {
 
     const result = await executeQuery`
       INSERT INTO documents (
-        equipment_id, 
-        document_type, 
-        file_path, 
-        issue_date, 
-        expiry_date, 
+        equipment_id,
+        document_type,
+        file_path,
+        file_name,
+        issue_date,
+        expiry_date,
         notes
-      ) 
+      )
       VALUES (
-        ${equipment_id || null}, 
-        ${document_type || null}, 
-        ${file_path}, 
-        ${issue_date || null}, 
-        ${expiry_date || null}, 
+        ${equipment_id || null},
+        ${document_type || null},
+        ${file_path},
+        ${file_name},
+        ${issue_date || null},
+        ${expiry_date || null},
         ${notes || null}
       )
       RETURNING id
