@@ -16,12 +16,7 @@ export const menuRoutes = (pathname:string) => {
       icon: Box,
       active: pathname === "/equipment" || pathname.startsWith("/equipment/"),
     },
-    {
-      path: "/documents",
-      name: "Documents",
-      icon: FileText,
-      active: pathname === "/documents" || pathname.startsWith("/documents/"),
-    },
+
     {
       path: "/rentals",
       name: "Rentals",

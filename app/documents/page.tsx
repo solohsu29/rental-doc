@@ -21,27 +21,6 @@ async function getDocuments(): Promise<Document[]> {
   return documents as Document[]
 }
 
-export default async function DocumentsPage() {
-  const documents = await getDocuments()
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <span>Total Documents:{documents?.length || 0}</span>
-        <Link href="/documents/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Document
-          </Button>
-        </Link>
-      </div>
-      <DataTable<Document, unknown>
-        columns={documentColumns}
-        data={documents}
-        searchColumn="gondola_number"
-        searchPlaceholder="Search by equipment..."
-        pageSize={5}
-      />
-    </div>
-  )
+export default function DocumentsPage() {
+  return null;
 }
