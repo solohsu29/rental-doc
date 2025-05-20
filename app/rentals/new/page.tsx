@@ -24,6 +24,32 @@ interface Client {
 }
 
 export default function NewRentalPage() {
+  // Document types (reuse from equipment)
+  const DOCUMENT_TYPES = [
+    { value: "SWP", label: "Safe Work Procedure (SWP)" },
+    { value: "RA", label: "Risk Assessment (RA)" },
+    { value: "MOS", label: "Method of Statement (MOS)" },
+    { value: "MOM_CERT", label: "Manufacturer’s Original Manual Certificate (MOM Cert)" },
+    { value: "PE_CALCULATION", label: "Professional Engineer Calculation (PE Calculation)" },
+    { value: "COS", label: "Certificate of Supervision (COS)" },
+    { value: "LEW", label: "Licensed Electrical Worker Certificate (LEW)" },
+  ];
+  interface DocumentUpload {
+    type: string;
+    file: File | null;
+    issue_date: string;
+    expiry_date: string;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  const [documents, setDocuments] = useState<DocumentUpload[]>([{ type: "", file: null, issue_date: today, expiry_date: "" }]);
+
+  const handleDocumentChange = (index: number, field: keyof DocumentUpload, value: any) => {
+    const updated = [...documents];
+    updated[index][field] = value;
+    setDocuments(updated);
+  };
+  const addDocumentField = () => setDocuments([...documents, { type: "", file: null, issue_date: today, expiry_date: "" }]);
+  const removeDocumentField = (index: number) => setDocuments(documents.filter((_, i) => i !== index));
   const router = useRouter()
   const searchParams = useSearchParams()
   const equipmentId = searchParams.get("equipment_id")
@@ -70,22 +96,20 @@ export default function NewRentalPage() {
     setIsLoading(true)
 
     const formData = new FormData(event.currentTarget)
+    // Append documents from state
+    documents.forEach((doc, idx) => {
+      if (doc.file && doc.type) {
+        formData.append(`documents[${idx}][file]`, doc.file);
+        formData.append(`documents[${idx}][type]`, doc.type);
+        formData.append(`documents[${idx}][issue_date]`, doc.issue_date || "");
+        formData.append(`documents[${idx}][expiry_date]`, doc.expiry_date || "");
+      }
+    });
 
     try {
       const response = await fetch("/api/rentals", {
         method: "POST",
-        body: JSON.stringify({
-          equipment_id: formData.get("equipment_id"),
-          client_id: formData.get("client_id"),
-          site_location: formData.get("site_location"),
-          start_date: formData.get("start_date"),
-          end_date: formData.get("end_date"),
-          monthly_rate: formData.get("monthly_rate"),
-          notes: formData.get("notes"),
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        body: formData,
       })
 
       if (!response.ok) {
@@ -159,6 +183,73 @@ export default function NewRentalPage() {
               {clients.length === 0 && (
                 <p className="text-sm text-muted-foreground">No clients found. Please add a client first.</p>
               )}
+            </div>
+
+            {/* Document Upload Section */}
+            <div className="space-y-2">
+              <Label>Rental Documents</Label>
+              {documents.map((doc, idx) => (
+                <div key={idx} className="border p-2 rounded mb-2 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label>Type</Label>
+                      <Select
+                        value={doc.type}
+                        onValueChange={val => handleDocumentChange(idx, "type", val)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_TYPES.map(dt => (
+                            <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1">
+                      <Label>File</Label>
+                      <Input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={e => handleDocumentChange(idx, "file", e.target.files?.[0] || null)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label>Issue Date</Label>
+                      <Input
+                        type="date"
+                        value={doc.issue_date}
+                        onChange={e => handleDocumentChange(idx, "issue_date", e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label>Expiry Date</Label>
+                      <Input
+                        type="date"
+                        value={doc.expiry_date}
+                        onChange={e => handleDocumentChange(idx, "expiry_date", e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeDocumentField(idx)}
+                        disabled={documents.length === 1}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addDocumentField}>
+                + Add Document
+              </Button>
             </div>
 
             <div className="space-y-2">

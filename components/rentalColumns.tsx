@@ -14,6 +14,14 @@ export interface Rental {
   site_location: string | null
   start_date: string
   status: string
+  documents?: Array<{
+    id: number;
+    file_name: string;
+    mime_type: string;
+    document_type: string;
+    issue_date: string;
+    expiry_date: string;
+  }>;
 }
 
 export const rentalColumns: ColumnDef<Rental, unknown>[] = [
@@ -81,6 +89,29 @@ export const rentalColumns: ColumnDef<Rental, unknown>[] = [
         {row.getValue("status") === "active" ? "On Hire" : "Off Hire"}
       </Badge>
     ),
+  },
+  {
+    accessorKey: "documents",
+    header: "Documents",
+    cell: ({ row }) => {
+      const docs = row.original.documents || [];
+      if (!docs.length) return <span className="text-muted-foreground">No documents</span>;
+      return (
+        <div className="flex flex-col gap-1">
+          {docs.map((doc: any) => (
+            <a
+              key={doc.id}
+              href={doc.id ? `/api/documents/${doc.id}/download` : '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              {doc.file_name || 'Document'}
+            </a>
+          ))}
+        </div>
+      );
+    },
   },
   {
     id: "actions",

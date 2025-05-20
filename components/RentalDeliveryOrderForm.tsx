@@ -134,22 +134,29 @@ export default function RentalDeliveryOrderForm() {
 
       // If not from rental context, create rental first
       if (!rentalIdFromQuery) {
+        // Use FormData for rental creation
+        const rentalFormData = new FormData();
+        rentalFormData.append("equipment_id", selectedEquipment);
+        rentalFormData.append("client_id", selectedClient);
+        rentalFormData.append("site_location", siteLocation);
+        rentalFormData.append("start_date", rentalStartDate);
+        rentalFormData.append("end_date", rentalEndDate);
+        rentalFormData.append("monthly_rate", monthlyRate);
+        rentalFormData.append("notes", notes);
+        // Add uploaded files
+        uploadFiles.forEach((file, idx) => {
+          rentalFormData.append(`documents[${idx}][file]`, file);
+          // Optionally add type, issue_date, expiry_date fields per doc
+        });
         const rentalRes = await fetch("/api/rentals", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            equipment_id: selectedEquipment,
-            client_id: selectedClient,
-            site_location: siteLocation,
-            monthly_rate: monthlyRate,
-            notes,
-          }),
+          body: rentalFormData,
         });
         const rentalData = await rentalRes.json();
         if (!rentalRes.ok) throw new Error(rentalData.error || "Rental creation failed");
         rentalId = rentalData.id;
-        clientId = rentalData.client_id;
-        equipmentId = rentalData.equipment_id;
+        clientId = selectedClient;
+        equipmentId = selectedEquipment;
       }
 
       // Always create delivery order
@@ -166,9 +173,9 @@ export default function RentalDeliveryOrderForm() {
       // Add selected documents (if any)
       const selectedDocIds = Object.keys(selectedDocuments).filter((id) => selectedDocuments[id]);
       formData.append("documents", JSON.stringify(selectedDocIds));
-      // (Optional) Add uploaded files if you re-enable upload
+      // Add uploaded files for delivery order if needed (optional)
       // uploadFiles.forEach((file, idx) => {
-      //   formData.append("files", file);
+      //   formData.append(`files[${idx}]`, file);
       // });
 
       const deliveryOrderRes = await fetch("/api/delivery-orders", {
@@ -197,6 +204,18 @@ export default function RentalDeliveryOrderForm() {
     <Card className="mt-4">
       <form onSubmit={handleSubmit} className="space-y-6">
         <CardContent className="space-y-4">
+          {/* File upload field for rental documents */}
+          {!rentalIdFromQuery && (
+            <div>
+              <Label htmlFor="rental-documents">Rental Documents</Label>
+              <Input
+                id="rental-documents"
+                type="file"
+                multiple
+                onChange={handleFileChange}
+              />
+            </div>
+          )}
           {/* Client Field */}
           {!rentalIdFromQuery && (
             <div>

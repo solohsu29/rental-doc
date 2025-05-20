@@ -6,6 +6,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const equipment_id = formData.get('equipment_id');
+    const rental_id = formData.get('rental_id');
     const document_type = formData.get('document_type');
     const issue_date = formData.get('issue_date');
     const expiry_date = formData.get('expiry_date');
@@ -14,14 +15,22 @@ export async function POST(request: Request) {
     const file_path = null;
 
     // Validate required fields
-    if (!equipment_id || !document_type || !issue_date) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if ((!equipment_id && !rental_id) || !document_type || !issue_date) {
+      return NextResponse.json({ error: "Missing required fields (equipment_id or rental_id, document_type, issue_date)" }, { status: 400 })
     }
 
     // Insert new document
     const result = await sql`
-      INSERT INTO documents (equipment_id, document_type, file_path, issue_date, expiry_date, notes)
-      VALUES (${equipment_id}, ${document_type}, ${file_path || null}, ${issue_date}, ${expiry_date || null}, ${notes || null})
+      INSERT INTO documents (equipment_id, rental_id, document_type, file_path, issue_date, expiry_date, notes)
+      VALUES (
+        ${equipment_id || null},
+        ${rental_id || null},
+        ${document_type},
+        ${file_path || null},
+        ${issue_date},
+        ${expiry_date || null},
+        ${notes || null}
+      )
       RETURNING id
     `
 

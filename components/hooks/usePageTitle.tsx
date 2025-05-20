@@ -14,7 +14,7 @@ export const usePageTitle = () => {
   const pathname = usePathname();
   const router = useRouter();
 
-console.log('pathname',pathname)
+
   const hasChild = !!pathname.split("/")[3];
 
   const getActiveName = (
@@ -24,8 +24,6 @@ console.log('pathname',pathname)
     const activeItem = items.find(
       (item) => item.active || item.subPaths?.some((sub) => sub.active)
     );
-
-    console.log('activeItem',activeItem)
 
     if (hasChild) {
       return {
