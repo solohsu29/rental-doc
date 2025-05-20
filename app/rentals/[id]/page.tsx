@@ -28,9 +28,13 @@ export default async function RentalDetailPage({ params }: { params: Promise<{ i
   const rental = await getRental(id);
   if (!rental) return notFound();
 
-  // Fetch all documents related to this equipment
-  const documents = await executeQuery`
+  // Fetch equipment documents
+  const equipmentDocuments = await executeQuery`
     SELECT * FROM documents WHERE equipment_id = ${rental.equipment_id} ORDER BY expiry_date DESC
+  `;
+  // Fetch rental documents
+  const rentalDocuments = await executeQuery`
+    SELECT * FROM documents WHERE rental_id = ${rental.id} ORDER BY expiry_date DESC
   `;
 
 
@@ -52,6 +56,33 @@ export default async function RentalDetailPage({ params }: { params: Promise<{ i
         </Link>
       </div>
 
+      {/* Equipment Documents Section */}
+      {/* <Card className="space-y-4">
+        <CardHeader>
+          <CardTitle>Equipment Documents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border mt-2">
+            {equipmentDocuments && equipmentDocuments.length > 0 ? (
+              <ul className="divide-y">
+                {equipmentDocuments.map((doc: any) => (
+                  <li key={doc.id} className="p-4">
+                    <div><b>Type:</b> {doc.document_type}</div>
+                    <div><b>Issue Date:</b> {formatDate(doc.issue_date)}</div>
+                    <div><b>Expiry Date:</b> {formatDate(doc.expiry_date)}</div>
+                    <div><b>Status:</b> {doc.status}</div>
+                    <div><b>Notes:</b> {doc.notes}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="p-4 text-muted-foreground text-center">No equipment documents found.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card> */}
+
+      {/* Rental Details Section */}
       <Card>
         <CardHeader>
           <CardTitle>Rental for {rental.gondola_number}</CardTitle>
@@ -99,10 +130,11 @@ export default async function RentalDetailPage({ params }: { params: Promise<{ i
         </CardContent>
       </Card>
 
+      {/* Rental Documents Section */}
       <Card className="space-y-4">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Documents</CardTitle>
+            <CardTitle>Rental Documents</CardTitle>
             {/* Placeholder for Add Document button, adapt for rental if needed */}
             {/* <Link href={`/documents/new?rental_id=${id}`}> */}
             {/*   <Button>
@@ -114,21 +146,45 @@ export default async function RentalDetailPage({ params }: { params: Promise<{ i
         </CardHeader>
         <CardContent>
           <div className="rounded-md border mt-6">
-            <h3 className="font-medium p-4 border-b">Equipment Documents</h3>
-            {documents && documents.length > 0 ? (
-              <ul className="divide-y">
-                {documents.map((doc: any) => (
-                  <li key={doc.id} className="p-4">
-                    <div><b>Type:</b> {doc.document_type}</div>
-                    <div><b>Issue Date:</b> {formatDate(doc.issue_date)}</div>
-                    <div><b>Expiry Date:</b> {formatDate(doc.expiry_date)}</div>
-                    <div><b>Status:</b> {doc.status}</div>
-                    <div><b>Notes:</b> {doc.notes}</div>
-                  </li>
-                ))}
-              </ul>
+            {rentalDocuments && rentalDocuments.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Issue Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expiry Date</th>
+                    
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {rentalDocuments.map((doc: any) => (
+                      <tr key={doc.id}>
+                        <td className="px-4 py-2">
+                          {doc.file_name ? (
+                            <a
+                              download
+                              href={doc.id ? `/api/documents/${doc.id}/file` : '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            >
+                              {doc.file_name}
+                            </a>
+                          ) : 'Document'}
+                        </td>
+                        <td className="px-4 py-2">{doc.document_type}</td>
+                        <td className="px-4 py-2">{formatDate(doc.issue_date)}</td>
+                        <td className="px-4 py-2">{formatDate(doc.expiry_date)}</td>
+                      
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div className="p-4 text-muted-foreground text-center">No documents found for this equipment.</div>
+              <div className="p-4 text-gray-500">No documents found.</div>
             )}
           </div>
         </CardContent>

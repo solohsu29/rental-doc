@@ -73,7 +73,7 @@ export default async function RentalsPage() {
 
       <RentalsTableClient data={rentals} />
 
-      {rentalsByStatus["on hire"].length === 0 && rentalsByStatus["off hire"].length === 0 && (
+      {rentals.length === 0 && (
         <p className="text-center text-muted-foreground">No rentals found. Create your first rental to get started.</p>
       )}
     </div>

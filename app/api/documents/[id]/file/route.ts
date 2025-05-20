@@ -7,18 +7,15 @@ import { NextRequest } from "next/server";
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const result = await sql`SELECT file_path FROM documents WHERE id = ${id}`;
-    if (!result || !result[0]?.file_path) {
+    const result = await sql`SELECT file_data, file_name, mime_type FROM documents WHERE id = ${id}`;
+    if (!result || !result[0]?.file_data) {
       return new Response("File not found", { status: 404 });
     }
-    const filePath = result[0].file_path;
-    const absPath = path.join(process.cwd(), "public", filePath);
-    const file = await fs.readFile(absPath);
-    return new Response(file, {
+    return new Response(result[0].file_data, {
       status: 200,
       headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename=\"${path.basename(filePath)}\"`
+        "Content-Type": result[0].mime_type || "application/octet-stream",
+        "Content-Disposition": `attachment; filename=\"${result[0].file_name || 'document'}\"`
       }
     });
   } catch (error) {

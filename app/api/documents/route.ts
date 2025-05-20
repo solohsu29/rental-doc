@@ -44,10 +44,19 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
+    const rentalId = searchParams.get("rental_id")
     const equipmentId = searchParams.get("equipment_id")
 
     let documents
-    if (equipmentId) {
+    if (rentalId) {
+      documents = await sql`
+        SELECT d.*, e.gondola_number
+        FROM documents d
+        LEFT JOIN equipment e ON d.equipment_id = e.id
+        WHERE d.rental_id = ${rentalId}
+        ORDER BY d.document_type, d.expiry_date DESC
+      `
+    } else if (equipmentId) {
       documents = await sql`
         SELECT d.*, e.gondola_number
         FROM documents d

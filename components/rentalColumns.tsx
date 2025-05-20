@@ -100,8 +100,9 @@ export const rentalColumns: ColumnDef<Rental, unknown>[] = [
         <div className="flex flex-col gap-1">
           {docs.map((doc: any) => (
             <a
+            download
               key={doc.id}
-              href={doc.id ? `/api/documents/${doc.id}/download` : '#'}
+              href={doc.id ? `/api/documents/${doc.id}/file` : '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline"

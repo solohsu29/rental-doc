@@ -62,7 +62,7 @@ export async function POST(request: Request) {
           const buffer = Buffer.from(arrayBuffer);
           const fileName = file.name;
           const mimeType = file.type;
-  await sql`
+          await sql`
             INSERT INTO documents (rental_id, file_data, file_name, mime_type, document_type, type, issue_date, expiry_date, notes)
             VALUES (${rentalId}, ${buffer}, ${fileName}, ${mimeType}, ${type}, ${type}, ${issueDate}, ${expiryDate}, ${notes})
           `;
