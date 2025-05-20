@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { DataTable } from "@/components/DataTable"
-import { Shift, shiftColumns } from "@/components/shiftColumns"
+import ShiftsTableClient from "@/components/ShiftsTableClient"
+import { Shift } from "@/components/shiftColumns"
 import { executeQuery } from "@/lib/db"
 
 async function getShifts(): Promise<Shift[]> {
@@ -30,13 +30,7 @@ export default async function ShiftsPage() {
           </Button>
         </Link>
       </div>
-      <DataTable<Shift, unknown>
-        columns={shiftColumns}
-        data={shifts}
-        searchColumn="gondola_number"
-        searchPlaceholder="Search by equipment..."
-        pageSize={5}
-      />
+      <ShiftsTableClient data={shifts} />
     </div>
   )
 }

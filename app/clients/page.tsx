@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { sql } from "@/lib/db"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { DataTable } from "@/components/DataTable"
-import { Client, clientColumns } from "@/components/clientColumns"
+import ClientsTableClient from "@/components/ClientsTableClient"
+import { Client } from "@/components/clientColumns"
 
 async function getClients(): Promise<Client[]> {
   const clients = await sql`
@@ -32,13 +32,7 @@ export default async function ClientsPage() {
         </Link>
       </div>
 
-      <DataTable<Client, unknown>
-        columns={clientColumns}
-        data={clients}
-        searchColumn="name"
-        searchPlaceholder="Search by client name..."
-        pageSize={5}
-      />
+      <ClientsTableClient data={clients} />
     </div>
   )
 }

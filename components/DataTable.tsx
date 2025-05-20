@@ -29,14 +29,19 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number
 }
 
-export function DataTable<TData, TValue>({
+interface DataTableMeta {
+  onDelete?: (ids: string[]) => void;
+}
+
+export function DataTable<TData extends { id: string }, TValue>({
   columns,
   data,
   searchColumn,
   searchPlaceholder = "Search...",
   showPagination = true,
   pageSize = 10,
-}: DataTableProps<TData, TValue>) {
+  meta,
+}: DataTableProps<TData, TValue> & { meta?: DataTableMeta }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -48,6 +53,8 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
+    meta,
+
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
@@ -66,10 +73,12 @@ export function DataTable<TData, TValue>({
     },
   })
 
+  const selectedIds = table.getSelectedRowModel().rows.map(row => row.original.id);
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2 gap-2">
       {searchColumn && (
-        <div className="flex items-center">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -79,67 +88,77 @@ export function DataTable<TData, TValue>({
               className="pl-8"
             />
           </div>
-        </div>
-      )}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={header.column.getCanSort() ? "cursor-pointer select-none" : ""}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      {{
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        )}
+        {(selectedIds.length > 0 && meta?.onDelete) ? (
+          <Button
+            variant="destructive"
+            onClick={() => meta.onDelete?.(selectedIds)}
+          >
+            Delete Selected ({selectedIds.length})
+          </Button>
+        ) : <div />}
+       
       </div>
-
+      <div className="rounded-md border overflow-hidden">
+        <div className="overflow-auto h-[480px]">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={header.column.getCanSort() ? "cursor-pointer select-none" : ""}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        {{
+                          asc: " 🔼",
+                          desc: " 🔽",
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
       {showPagination && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-2 pb-4">
           <div className="flex items-center space-x-2">
             <p className="text-sm text-muted-foreground">
               Showing{" "}
               <span className="font-medium">
                 {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
-              </span>{" "}
-              to{" "}
+              </span>
+              {" "}-{" "}
               <span className="font-medium">
                 {Math.min(
                   (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                  table.getFilteredRowModel().rows.length,
+                  table.getFilteredRowModel().rows.length
                 )}
-              </span>{" "}
-              of <span className="font-medium">{table.getFilteredRowModel().rows.length}</span> results
+              </span>
+              {" "}of {table.getFilteredRowModel().rows.length} results
             </p>
           </div>
           <div className="flex items-center space-x-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -39,6 +39,12 @@ const DO_TYPES = [
 ];
 
 export default function RentalDeliveryOrderForm() {
+  const searchParams = useSearchParams();
+  const rentalIdFromQuery = searchParams.get("rental_id");
+  const doTypeFromQuery = searchParams.get("type");
+
+  const [rentalLoading, setRentalLoading] = useState(false);
+  const [rentalFetched, setRentalFetched] = useState(false);
   const router = useRouter();
   // Form state
   const [clients, setClients] = useState<Client[]>([]);
@@ -62,6 +68,7 @@ export default function RentalDeliveryOrderForm() {
 
   // Fetch clients, equipment, and documents
   useEffect(() => {
+    // Always fetch clients and equipment for fallback/manual mode
     fetch("/api/clients")
       .then((res) => res.json())
       .then(setClients)
@@ -71,6 +78,26 @@ export default function RentalDeliveryOrderForm() {
       .then(setEquipment)
       .catch(() => setError("Failed to fetch equipment"));
   }, []);
+
+  // If rental_id is present, fetch rental details and pre-fill fields
+  useEffect(() => {
+    if (!rentalIdFromQuery) return;
+    setRentalLoading(true);
+    fetch(`/api/rentals/${rentalIdFromQuery}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSelectedClient(String(data.client_id));
+        setSelectedEquipment(String(data.equipment_id));
+        setSiteLocation(data.site_location || "");
+        setRentalStartDate(data.start_date ? data.start_date.slice(0, 10) : "");
+        setRentalEndDate(data.end_date ? data.end_date.slice(0, 10) : "");
+        setMonthlyRate(data.monthly_rate ? String(data.monthly_rate) : "");
+        setNotes(data.notes || "");
+        setRentalFetched(true);
+      })
+      .catch(() => setError("Failed to fetch rental details"))
+      .finally(() => setRentalLoading(false));
+  }, [rentalIdFromQuery]);
 
   // Fetch documents for selected equipment
   useEffect(() => {
@@ -101,39 +128,48 @@ export default function RentalDeliveryOrderForm() {
     setSuccess("");
 
     try {
-      // 1. Create rental
-      const rentalRes = await fetch("/api/rentals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          equipment_id: selectedEquipment,
-          client_id: selectedClient,
-          site_location: siteLocation,
-          start_date: rentalStartDate,
-          end_date: rentalEndDate, // Include end date
-          monthly_rate: monthlyRate,
-          notes,
-        }),
-      });
-      const rentalData = await rentalRes.json();
-      if (!rentalRes.ok) throw new Error(rentalData.error || "Rental creation failed");
-      const rentalId = rentalData.id;
+      let rentalId = rentalIdFromQuery;
+      let clientId = selectedClient;
+      let equipmentId = selectedEquipment;
 
-      // 2. Create delivery order and upload documents in one request
+      // If not from rental context, create rental first
+      if (!rentalIdFromQuery) {
+        const rentalRes = await fetch("/api/rentals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            equipment_id: selectedEquipment,
+            client_id: selectedClient,
+            site_location: siteLocation,
+            monthly_rate: monthlyRate,
+            notes,
+          }),
+        });
+        const rentalData = await rentalRes.json();
+        if (!rentalRes.ok) throw new Error(rentalData.error || "Rental creation failed");
+        rentalId = rentalData.id;
+        clientId = rentalData.client_id;
+        equipmentId = rentalData.equipment_id;
+      }
+
+      // Always create delivery order
       const formData = new FormData();
-      formData.append("rental_id", rentalId);
+      formData.append("rental_id", rentalId ?? "");
+      formData.append("client_id", clientId ?? "");
+      formData.append("equipment_id", equipmentId ?? "");
       formData.append("do_number", doNumber);
       formData.append("do_date", doDate);
       formData.append("do_type", doType);
       formData.append("notes", notes);
-      formData.append("end_date", rentalEndDate);
+      formData.append("site_location", siteLocation);
+      formData.append("monthly_rate", monthlyRate);
       // Add selected documents (if any)
       const selectedDocIds = Object.keys(selectedDocuments).filter((id) => selectedDocuments[id]);
       formData.append("documents", JSON.stringify(selectedDocIds));
-      // Add uploaded files
-      uploadFiles.forEach((file, idx) => {
-        formData.append("files", file);
-      });
+      // (Optional) Add uploaded files if you re-enable upload
+      // uploadFiles.forEach((file, idx) => {
+      //   formData.append("files", file);
+      // });
 
       const deliveryOrderRes = await fetch("/api/delivery-orders", {
         method: "POST",
@@ -152,63 +188,59 @@ export default function RentalDeliveryOrderForm() {
     }
   };
 
+
+  if (rentalLoading) {
+    return <div className="p-4">Loading rental details...</div>;
+  }
+
   return (
     <Card className="mt-4">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <CardHeader>
-          <CardTitle>Create Delivery Order</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label>Client</Label>
-            <Select value={selectedClient} onValueChange={setSelectedClient} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients?.map((client) => (
-                  <SelectItem key={client.id} value={String(client.id)}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Equipment</Label>
-            <Select value={selectedEquipment} onValueChange={setSelectedEquipment} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select equipment" />
-              </SelectTrigger>
-              <SelectContent>
-                {equipment
-                  .filter((eq) => eq.status === "available" || eq.status === "deployed")
-                  .map((eq) => (
-                    <SelectItem key={eq.id} value={String(eq.id)}>
-                      {eq.gondola_number} ({eq.equipment_type})
+          {/* Client Field */}
+          {!rentalIdFromQuery && (
+            <div>
+              <Label>Client</Label>
+              <Select value={selectedClient} onValueChange={setSelectedClient} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={String(client.id)}>
+                      {client.name}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Rental Start Date</Label>
-            <Input
-              type="date"
-              value={rentalStartDate}
-              onChange={(e) => setRentalStartDate(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Label>Rental End Date</Label>
-            <Input
-              type="date"
-              value={rentalEndDate}
-              onChange={(e) => setRentalEndDate(e.target.value)}
-            />
-          </div>
-         
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Equipment Field */}
+          {!rentalIdFromQuery && (
+            <div>
+              <Label>Equipment</Label>
+              <Select value={selectedEquipment} onValueChange={setSelectedEquipment} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select equipment" />
+                </SelectTrigger>
+                 <SelectContent>
+                   {equipment.filter((eq) => eq.status === "available").length === 0 ? (
+                     <div className="px-3 py-2 text-muted-foreground text-sm">No available equipment</div>
+                   ) : (
+                     equipment
+                       .filter((eq) => eq.status === "available")
+                       .map((eq) => (
+                         <SelectItem key={eq.id} value={String(eq.id)}>
+                           {eq.gondola_number} ({eq.equipment_type})
+                         </SelectItem>
+                       ))
+                   )}
+                 </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!rentalIdFromQuery && (
           <div>
             <Label>Monthly Rate</Label>
             <Input
@@ -218,6 +250,7 @@ export default function RentalDeliveryOrderForm() {
               placeholder="Enter monthly rate"
             />
           </div>
+          )}
           <div>
             <Label>DO Number</Label>
             <Input
@@ -251,6 +284,7 @@ export default function RentalDeliveryOrderForm() {
               </SelectContent>
             </Select>
           </div>
+          {!rentalIdFromQuery && (
           <div>
             <Label>Site Location</Label>
             <Input
@@ -260,6 +294,7 @@ export default function RentalDeliveryOrderForm() {
               required
             />
           </div>
+          )}
           <div>
             <Label>Notes</Label>
             <Textarea
@@ -268,49 +303,52 @@ export default function RentalDeliveryOrderForm() {
               placeholder="Additional notes (optional)"
             />
           </div>
-          {documents?.length > 0 && (
-            <div>
-              <Label>Equipment Documents</Label>
-              <div className="space-y-2">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={!!selectedDocuments[doc.id]}
-                      onCheckedChange={() => handleDocumentCheck(String(doc.id))}
-                      id={`doc-${doc.id}`}
-                    />
-                    <Label htmlFor={`doc-${doc.id}`}>
-                      {doc.document_type} ({doc.issue_date})
-                      {doc.file_name && (
-                        <>
-                          {" "}
-                          <a
-                            href={`/api/documents/${doc.id}/file`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-600 underline hover:text-blue-800"
-                            download={doc.file_name}
-                          >
-                            Download
-                          </a>
-                        </>
-                      )}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+          {/* Equipment Documents: Only show if not from rental context */}
+        {!rentalIdFromQuery && documents?.length > 0 && (
+          <div>
+            <Label>Equipment Documents</Label>
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={!!selectedDocuments[doc.id]}
+                    onCheckedChange={() => handleDocumentCheck(String(doc.id))}
+                    id={`doc-${doc.id}`}
+                  />
+                  <Label htmlFor={`doc-${doc.id}`}>
+                    {doc.document_type} ({doc.issue_date})
+                    {doc.file_name && (
+                      <>
+                        {" "}
+                        <a
+                          href={`/api/documents/${doc.id}/file`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-600 underline hover:text-blue-800"
+                          download={doc.file_name}
+                        >
+                          Download
+                        </a>
+                      </>
+                    )}
+                  </Label>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}  
+         {!rentalIdFromQuery && (
           <div>
             <Label>Upload New Documents</Label>
             <Input type="file" multiple onChange={handleFileChange} />
           </div>
+         )}
         </CardContent>
         <CardFooter className="flex flex-col items-end gap-2">
           {error && <span className="text-red-500 text-sm">{error}</span>}
           {success && <span className="text-green-600 text-sm">{success}</span>}
           <div className="flex gap-2">
-            <Button type="submit" disabled={isLoading || !selectedClient || !selectedEquipment || !doType || !doNumber || !doDate || !siteLocation || !rentalStartDate}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Delivery Order"}
             </Button>
           </div>

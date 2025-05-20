@@ -137,12 +137,12 @@ export default async function EquipmentDetailPage({ params }: { params: { id: st
         <TabsContent value="documents" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Documents</h2>
-            <Link href={`/documents/new?equipment_id=${id}`}>
+            {/* <Link href={`/documents/new?equipment_id=${id}`}>
               <Button>
                 <FileText className="mr-2 h-4 w-4" />
                 Add Document
               </Button>
-            </Link>
+            </Link> */}
           </div>
 
           {documents.length > 0 ? (

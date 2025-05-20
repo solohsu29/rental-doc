@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { DataTable } from "@/components/DataTable"
-import { DeliveryOrder, deliveryOrderColumns } from "@/components/deliveryOrderColumns"
+import DeliveryOrdersTableClient from "@/components/DeliveryOrdersTableClient"
+import { DeliveryOrder } from "@/components/deliveryOrderColumns"
 import { executeQuery } from "@/lib/db"
 
 
@@ -34,12 +34,6 @@ export default async function DeliveryOrdersPage() {
           </Button>
         </Link>
       </div>
-      <DataTable<DeliveryOrder, unknown>
-        columns={deliveryOrderColumns}
-        data={deliveryOrders}
-        searchColumn="do_number"
-        searchPlaceholder="Search by DO number..."
-        pageSize={5}
-      />
+      <DeliveryOrdersTableClient data={deliveryOrders} />
          </div>
   )}

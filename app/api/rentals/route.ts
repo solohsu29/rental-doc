@@ -5,11 +5,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    const { equipment_id, client_id, site_location, start_date, monthly_rate, notes } = body
+    const { equipment_id, client_id, site_location, start_date, end_date, monthly_rate, notes } = body
 
     // Validate required fields
-    if (!equipment_id || !client_id || !site_location || !start_date) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!equipment_id || !client_id || !site_location || !start_date || !end_date) {
+      return NextResponse.json({ error: "Missing required fields (equipment_id, client_id, site_location, start_date, end_date)" }, { status: 400 })
     }
 
     // Check if equipment is available
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
 
     // Insert new rental
     const result = await sql`
-      INSERT INTO rentals (equipment_id, client_id, site_location, start_date, monthly_rate, notes, status)
-      VALUES (${equipment_id}, ${client_id}, ${site_location}, ${start_date}, ${monthly_rate || null}, ${notes || null}, 'active')
+      INSERT INTO rentals (equipment_id, client_id, site_location, start_date, end_date, monthly_rate, notes, status)
+      VALUES (${equipment_id}, ${client_id}, ${site_location}, ${start_date}, ${end_date}, ${monthly_rate || null}, ${notes || null}, 'active')
       RETURNING id
     `
 

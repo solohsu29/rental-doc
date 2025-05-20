@@ -6,8 +6,8 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Eye, Plus, PlusCircle, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { DataTable } from "@/components/DataTable"
-import { Equipment, equipmentColumns } from "@/components/equipmentColumns"
+import EquipmentTableClient from "@/components/EquipmentTableClient"
+import { Equipment } from "@/components/equipmentColumns"
 async function getEquipment(): Promise<Equipment[]> {
   try {
     // Use tagged template literal syntax (no parentheses)
@@ -16,15 +16,34 @@ async function getEquipment(): Promise<Equipment[]> {
         e.id,
         e.gondola_number,
         e.motor_serial_number,
+        e.equipment_type,
+        e.status,
+        e.current_location,
+        e.notes,
         (
           SELECT COUNT(*) FROM rentals r WHERE r.equipment_id = e.id AND r.status = 'active'
         ) AS active_rentals,
         (
           SELECT COUNT(*) FROM documents d WHERE d.equipment_id = e.id AND d.expiry_date > CURRENT_DATE
-        ) AS valid_documents
+        ) AS valid_documents,
+        COALESCE(
+          json_agg(
+            jsonb_build_object(
+              'id', d.id,
+              'file_name', d.file_name,
+              'mime_type', d.mime_type,
+              'document_type', d.document_type,
+              'type', d.type,
+              'issue_date', d.issue_date,
+              'expiry_date', d.expiry_date
+            )
+          ) FILTER (WHERE d.id IS NOT NULL), '[]'
+        ) AS documents
       FROM equipment e
+      LEFT JOIN documents d ON d.equipment_id = e.id
+      GROUP BY e.id
       ORDER BY e.gondola_number
-    `
+    `;
     return rows as Equipment[]
   } catch (error) {
     console.error("Error fetching equipment:", error)
@@ -47,69 +66,9 @@ export default async function EquipmentPage() {
         </Link>
       </div>
 
-      {/* <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Gondola #</TableHead>
-              <TableHead>Motor Serial</TableHead>
-              <TableHead className="text-center">Active Rentals</TableHead>
-              <TableHead className="text-center">Valid Documents</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {equipment.length > 0 ? (
-              equipment.map((item: any) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.gondola_number}</TableCell>
-                  <TableCell>{item.motor_serial_number}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={item.active_rentals > 0 ? "default" : "outline"} className="text-xs">
-                      {item.active_rentals}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={item.valid_documents > 0 ? "secondary" : "outline"} className="text-xs">
-                      {item.valid_documents}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/equipment/${item.id}`}>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Button>
-                      </Link>
-                      <Link href={`/rentals/new?equipment_id=${item.id}`}>
-                        <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-                          <PlusCircle className="h-4 w-4" />
-                          <span className="sr-only">Rental</span>
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  No equipment found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div> */}
+    
       
-        <DataTable<Equipment, unknown>
-          columns={equipmentColumns}
-          data={equipment}
-          searchColumn="gondola_number"
-          searchPlaceholder="Search by gondola number..."
-          pageSize={5}
-        />
+        <EquipmentTableClient data={equipment} />
       
     </div>
   )

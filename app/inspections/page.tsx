@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { DataTable } from "@/components/DataTable"
-import { Inspection, inspectionColumns } from "@/components/inspectionColumns"
+import InspectionsTableClient from "@/components/InspectionsTableClient"
+import { Inspection } from "@/components/inspectionColumns"
 import { executeQuery } from "@/lib/db"
 
 async function getInspections(): Promise<Inspection[]> {
@@ -31,13 +31,7 @@ export default async function InspectionsPage() {
           </Button>
         </Link>
       </div>
-      <DataTable<Inspection, unknown>
-        columns={inspectionColumns}
-        data={inspections}
-        searchColumn="gondola_number"
-        searchPlaceholder="Search by equipment..."
-        pageSize={5}
-      />
+      <InspectionsTableClient data={inspections} />
     </div>
   )
 }

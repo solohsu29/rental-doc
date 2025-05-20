@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { formatDate } from "@/lib/db"
 import type { ColumnDef } from "@tanstack/react-table"
+import { Button } from "./ui/button"
+import { Eye, Trash } from "lucide-react"
 
 export interface Rental {
   id: string
@@ -15,6 +17,28 @@ export interface Rental {
 }
 
 export const rentalColumns: ColumnDef<Rental, unknown>[] = [
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllPageRowsSelected()}
+        onChange={table.getToggleAllPageRowsSelectedHandler()}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        disabled={!row.getCanSelect()}
+        onChange={row.getToggleSelectedHandler()}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "gondola_number",
     header: "Equipment",
@@ -35,6 +59,14 @@ export const rentalColumns: ColumnDef<Rental, unknown>[] = [
     cell: ({ row }) => formatDate(row.getValue("start_date")),
   },
   {
+    accessorKey: "end_date",
+    header: "End Date",
+    cell: ({ row }) => {
+      const val = row.getValue("end_date");
+      return val ? formatDate(val) : "N/A";
+    },
+  },
+  {
     accessorKey: "status",
     header: "Hire Status",
     cell: ({ row }) => (
@@ -46,10 +78,27 @@ export const rentalColumns: ColumnDef<Rental, unknown>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <Link href={`/rentals/${row.original.id}`}>
-        <span className="underline text-blue-600 hover:text-blue-800 cursor-pointer">View</span>
-      </Link>
+    cell: ({ row, table }) => (
+      <div className="flex gap-2">
+       
+
+        <Link href={`/rentals/${row.original.id}`}>
+          <Button size="sm" variant="outline">
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">View</span>
+          </Button>
+        </Link>
+      
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 w-8 p-0"
+          onClick={() => table.options.meta?.onDelete?.([row.original.id])}
+        >
+          <Trash className="h-4 w-4"/>
+          <span className="sr-only">Delete</span>
+        </Button>
+      </div>
     ),
   },
 ]

@@ -6,8 +6,8 @@ import { sql } from "@/lib/db"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 
-import { DataTable } from "@/components/DataTable"
-import { Rental, rentalColumns } from "@/components/rentalColumns"
+import RentalsTableClient from "@/components/RentalsTableClient"
+import { Rental } from "@/components/rentalColumns"
 
 async function getRentals(): Promise<Rental[]> {
   const rentals = await sql`
@@ -28,15 +28,19 @@ export default async function RentalsPage() {
 
   // Group rentals by status
   const rentalsByStatus: Record<string, any[]> = {
-    active: [],
-    completed: [],
-    cancelled: [],
+    "on hire": [],
+    "off hire": [],
+    other: [],
   }
 
   rentals.forEach((rental: any) => {
-    rentalsByStatus[rental.status].push(rental)
+    if (rentalsByStatus[rental.status]) {
+      rentalsByStatus[rental.status].push(rental)
+    } else {
+      rentalsByStatus.other.push(rental)
+    }
   })
-
+console.log('rentals',rentals)
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -50,15 +54,9 @@ export default async function RentalsPage() {
         </Link>
       </div>
 
-      <DataTable<Rental, unknown>
-        columns={rentalColumns}
-        data={rentals}
-        searchColumn="gondola_number"
-        searchPlaceholder="Search by equipment..."
-        pageSize={5}
-      />
+      <RentalsTableClient data={rentals} />
 
-      {rentalsByStatus.active.length === 0 && rentalsByStatus.completed.length === 0 && (
+      {rentalsByStatus["on hire"].length === 0 && rentalsByStatus["off hire"].length === 0 && (
         <p className="text-center text-muted-foreground">No rentals found. Create your first rental to get started.</p>
       )}
     </div>

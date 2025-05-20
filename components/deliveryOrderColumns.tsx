@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/db"
 import type { ColumnDef } from "@tanstack/react-table"
+import { Eye, Trash } from "lucide-react"
 
 export interface DeliveryOrder {
   id: string
@@ -17,6 +18,28 @@ export interface DeliveryOrder {
 }
 
 export const deliveryOrderColumns: ColumnDef<DeliveryOrder, unknown>[] = [
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllPageRowsSelected()}
+        onChange={table.getToggleAllPageRowsSelectedHandler()}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        disabled={!row.getCanSelect()}
+        onChange={row.getToggleSelectedHandler()}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "do_number",
     header: "DO Number",
@@ -53,10 +76,26 @@ export const deliveryOrderColumns: ColumnDef<DeliveryOrder, unknown>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <Link href={`/delivery-orders/${row.original.id}`}>
-        <Button size="sm" variant="outline">View</Button>
-      </Link>
+    cell: ({ row, table }) => (
+      <div className="flex gap-2">
+        
+        <Link href={`/delivery-orders/${row.original.id}`}>
+          <Button size="sm" variant="outline">
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">View</span>
+          </Button>
+        </Link>
+      
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 w-8 p-0"
+          onClick={() => table.options.meta?.onDelete?.([row.original.id])}
+        >
+          <Trash className="h-4 w-4"/>
+          <span className="sr-only">Delete</span>
+        </Button>
+      </div>
     ),
   },
-]
+];

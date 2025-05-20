@@ -24,10 +24,11 @@ async function getRental(id: string) {
 async function updateRental(id: string, formData: FormData) {
   "use server"
   const status = formData.get("status") as string
+  const start_date = formData.get("start_date") as string
   const end_date = formData.get("end_date") as string
   const notes = formData.get("notes") as string
   await executeQuery`
-    UPDATE rentals SET status = ${status}, end_date = ${end_date}, notes = ${notes}
+    UPDATE rentals SET status = ${status}, start_date = ${start_date}, end_date = ${end_date}, notes = ${notes}
     WHERE id = ${id}
   `
   revalidatePath(`/rentals/${id}`)
@@ -42,18 +43,21 @@ export default async function EditRentalPage({ params }: { params: Promise<{ id:
   return (
     <div className="max-w-xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-4">Edit Rental</h1>
-      <form action={updateRental.bind(null, params.id)} className="space-y-4">
+      <form action={updateRental.bind(null, id)} className="space-y-4">
         <div>
           <label className="block font-medium">Status</label>
           <select name="status" defaultValue={rental.status} className="border rounded px-2 py-1">
-            <option value="active">Active</option>
-            <option value="completed">Completed (Offhire)</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="on hire">On Hire</option>
+            <option value="off hire">Off Hire</option>
           </select>
         </div>
         <div>
+          <label className="block font-medium">Start Date</label>
+          <input type="date" name="start_date" defaultValue={typeof rental.start_date === 'string' ? rental.start_date.split('T')[0] : (rental.start_date instanceof Date ? rental.start_date.toISOString().split('T')[0] : '')} className="border rounded px-2 py-1" />
+        </div>
+        <div>
           <label className="block font-medium">End Date</label>
-          <input type="date" name="end_date" defaultValue={rental.end_date ? rental.end_date.split('T')[0] : ''} className="border rounded px-2 py-1" />
+          <input type="date" name="end_date" defaultValue={typeof rental.end_date === 'string' ? rental.end_date.split('T')[0] : (rental.end_date instanceof Date ? rental.end_date.toISOString().split('T')[0] : '')} className="border rounded px-2 py-1" />
         </div>
         <div>
           <label className="block font-medium">Notes</label>
@@ -61,7 +65,7 @@ export default async function EditRentalPage({ params }: { params: Promise<{ id:
         </div>
         <div className="flex gap-2">
           <Button type="submit">Save</Button>
-          <Link href={`/rentals/${params.id}`}><Button type="button" variant="outline">Cancel</Button></Link>
+          <Link href={`/rentals/${id}`}><Button type="button" variant="outline">Cancel</Button></Link>
         </div>
       </form>
     </div>

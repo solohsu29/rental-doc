@@ -28,14 +28,22 @@ export async function POST(request: Request) {
       // Handle file uploads
       const files = formData.getAll("files");
       let uploadedDocumentIds: number[] = [];
+      // Get equipment_id from rental
+      let equipment_id: number | null = null;
+      const rentalRes = await sql`
+        SELECT equipment_id FROM rentals WHERE id = ${rental_id}
+      `;
+      if (rentalRes.length > 0) {
+        equipment_id = rentalRes[0].equipment_id;
+      }
       for (const file of files) {
         if (typeof file === "object" && file instanceof File) {
           const arrayBuffer = await file.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
-          // Insert document record with file_data and file_name
+          // Insert document record with correct equipment_id
           const docRes = await sql`
             INSERT INTO documents (equipment_id, document_type, issue_date, file_data, file_name)
-            VALUES (${null}, ${file.name}, ${new Date().toISOString().slice(0, 10)}, ${buffer}, ${file.name}) RETURNING id
+            VALUES (${equipment_id}, ${file.name}, ${new Date().toISOString().slice(0, 10)}, ${buffer}, ${file.name}) RETURNING id
           `;
           uploadedDocumentIds.push(docRes[0].id);
         }

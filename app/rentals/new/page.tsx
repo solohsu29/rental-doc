@@ -79,6 +79,7 @@ export default function NewRentalPage() {
           client_id: formData.get("client_id"),
           site_location: formData.get("site_location"),
           start_date: formData.get("start_date"),
+          end_date: formData.get("end_date"),
           monthly_rate: formData.get("monthly_rate"),
           notes: formData.get("notes"),
         }),
@@ -165,10 +166,14 @@ export default function NewRentalPage() {
               <Input id="site_location" name="site_location" required />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="start_date">Start Date</Label>
                 <Input id="start_date" name="start_date" type="date" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_date">End Date</Label>
+                <Input id="end_date" name="end_date" type="date" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="monthly_rate">Monthly Rate</Label>

@@ -2,17 +2,39 @@ import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
 
 
-// GET /api/documents/[id] - fetch document detail
+// GET /api/documents/[id] - fetch document detail or stream file
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params;
-    const result = await sql`SELECT id, equipment_id, document_type, issue_date, file_name FROM documents WHERE id = ${id}`;
-    if (!result || result.length === 0) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    const { id } = params;
+    const url = new URL(request.url);
+    const download = url.searchParams.get("download");
+
+    if (download) {
+      // Serve file data from DB
+      const result = await sql`SELECT file_data, file_name, mime_type FROM documents WHERE id = ${id}`;
+      if (!result || !result[0]?.file_data) {
+        return new Response("File not found", { status: 404 });
+      }
+      const fileBuffer = result[0].file_data;
+      const fileName = result[0].file_name || `document_${id}`;
+      const mimeType = result[0].mime_type || "application/octet-stream";
+      return new Response(fileBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": mimeType,
+          "Content-Disposition": `attachment; filename=\"${fileName}\"`
+        }
+      });
+    } else {
+      // Return document metadata as JSON
+      const result = await sql`SELECT id, equipment_id, file_name, mime_type, type FROM documents WHERE id = ${id}`;
+      if (!result || result.length === 0) {
+        return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      }
+      return NextResponse.json(result[0]);
     }
-    return NextResponse.json(result[0]);
   } catch (error) {
-    console.error("Error fetching document:", error);
+    console.error("Error fetching/serving document:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
