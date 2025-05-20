@@ -66,13 +66,13 @@ export const deliveryOrderColumns: ColumnDef<DeliveryOrder, unknown>[] = [
     accessorKey: "site_location",
     header: "Site",
   },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${row.original.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{row?.original?.status}</span>
-    ),
-  },
+  // {
+  //   accessorKey: "status",
+  //   header: "Status",
+  //   cell: ({ row }) => (
+  //     <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${row.original.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{row?.original?.status}</span>
+  //   ),
+  // },
   {
     id: "actions",
     header: "Actions",
