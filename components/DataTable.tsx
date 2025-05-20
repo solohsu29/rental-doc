@@ -29,7 +29,7 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number
 }
 
-interface DataTableMeta {
+export interface DataTableMeta {
   onDelete?: (ids: string[]) => void;
 }
 

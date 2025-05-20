@@ -56,14 +56,21 @@ export const rentalColumns: ColumnDef<Rental, unknown>[] = [
   {
     accessorKey: "start_date",
     header: "Start Date",
-    cell: ({ row }) => formatDate(row.getValue("start_date")),
+    cell: ({ row }) => {
+      const val = row.getValue("start_date");
+      return (typeof val === "string" || val instanceof Date || val === null)
+        ? formatDate(val)
+        : "N/A";
+    },
   },
   {
     accessorKey: "end_date",
     header: "End Date",
     cell: ({ row }) => {
       const val = row.getValue("end_date");
-      return val ? formatDate(val) : "N/A";
+      return (typeof val === "string" || val instanceof Date || val === null)
+        ? formatDate(val)
+        : "N/A";
     },
   },
   {
